@@ -1,0 +1,52 @@
+## ==============================================================================
+## createComment Request Mapping Template
+## ==============================================================================
+## 비인증(API_KEY)과 인증(Cognito) 사용자 모두 댓글 작성 가능
+##
+## author 결정 우선순위:
+##   1. Cognito 인증 사용자 → Cognito 이메일 사용 (신뢰 가능한 식별자)
+##   2. 비인증 사용자 → input.author (프론트엔드에서 생성한 랜덤 닉네임)
+##   3. 둘 다 없는 경우 → "익명" 기본값
+## ==============================================================================
+
+#set($now = $util.time.nowISO8601())
+#set($id = $util.autoId())
+#set($postId = $ctx.args.input.postId)
+
+## Cognito 인증 사용자이면 이메일을 author로 사용
+#set($author = $context.identity.claims.get("email"))
+
+## 비인증 사용자인 경우 input.author(랜덤 닉네임)를 사용
+#if($util.isNullOrEmpty($author))
+  #set($author = $ctx.args.input.author)
+#end
+
+## 그래도 없는 경우 기본값 "익명" 사용
+#if($util.isNullOrEmpty($author))
+  #set($author = "익명")
+#end
+
+## 댓글 내용 필수 검증
+#if($util.isNullOrEmpty($ctx.args.input.content))
+  $util.error("댓글 내용은 필수입니다", "ValidationException")
+#end
+
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    ## PK: 부모 포스트와 동일 파티션에 저장 (1:N 관계 표현)
+    "PK": $util.dynamodb.toDynamoDBJson("POST#$postId"),
+    ## SK: COMMENT# 프리픽스 + 시간순 정렬을 위한 ISO8601 + UUID (유일성 보장)
+    "SK": $util.dynamodb.toDynamoDBJson("COMMENT#${now}#${id}")
+  },
+  "attributeValues": {
+    "id":        $util.dynamodb.toDynamoDBJson($id),
+    "postId":    $util.dynamodb.toDynamoDBJson($postId),
+    "content":   $util.dynamodb.toDynamoDBJson($ctx.args.input.content),
+    "author":    $util.dynamodb.toDynamoDBJson($author),
+    "createdAt": $util.dynamodb.toDynamoDBJson($now),
+    ## EntityType은 Single Table Design에서 엔티티 유형 구분에 사용
+    "EntityType": $util.dynamodb.toDynamoDBJson("COMMENT")
+  }
+}

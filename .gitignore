@@ -1,0 +1,51 @@
+# ==============================================================================
+# Terraform .gitignore
+# ==============================================================================
+
+# 1. 로컬 작업 디렉토리 및 플러그인 (다른 장치에서 terraform init 시 새로 생성됨)
+.terraform/
+
+# 2. 로컬 상태 파일 (민감 정보 포함 가능성)
+# 협업 시에는 S3 Backend 사용을 권장하지만, 현재는 로컬 상태를 제외합니다.
+*.tfstate
+*.tfstate.*
+
+# 3. 크래시 로그 및 캐시
+*.log
+# .terraform.lock.hcl
+# *.cache
+
+# 4. 변수 파일
+# 민감 정보 누출 방지를 위해 모든 .tfvars 파일을 제외합니다.
+# 공통 템플릿이 필요한 경우 terraform.tfvars.example 파일을 사용하세요.
+*.tfvars
+*.secret.tfvars
+*.tfvars.json
+
+# 예외: 기본 템플릿용 tfvars 파일이 필요하다면 아래처럼 추가할 수 있습니다.
+# !terraform.tfvars.example
+
+# 5. OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# 6. 동적 빌드 및 배포 산출물
+*.zip
+
+# 7. Node.js 관련 (Lambda 단위 테스트)
+# 의존성 패키지 (npm install로 재설치)
+node_modules/
+# Vitest coverage report (CI에서 자동 생성)
+coverage/
+
+# Temporary scratch files
+scratch/
+
+# 8. IDE 및 에디터 설정 파일 (로컬 환경 유출 방지)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

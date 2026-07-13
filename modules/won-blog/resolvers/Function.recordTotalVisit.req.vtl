@@ -1,0 +1,24 @@
+## ==============================================================================
+## Function: recordTotalVisit - TOTAL 방문자 카운터 +1
+## ==============================================================================
+## DynamoDB UpdateItem + ADD 연산으로 누적 방문자 카운트를 1 증가시킵니다.
+## PK="VISITOR", SK="TOTAL" 아이템을 업데이트합니다.
+## ==============================================================================
+
+{
+  "version": "2018-05-29",
+  "operation": "UpdateItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("VISITOR"),
+    "SK": $util.dynamodb.toDynamoDBJson("TOTAL")
+  },
+  "update": {
+    "expression": "ADD #count :inc",
+    "expressionNames": {
+      "#count": "count"
+    },
+    "expressionValues": {
+      ":inc": $util.dynamodb.toDynamoDBJson(1)
+    }
+  }
+}

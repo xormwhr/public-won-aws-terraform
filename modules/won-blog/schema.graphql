@@ -1,0 +1,238 @@
+# ==============================================================================
+# GraphQL Schema - 블로그 API
+# ==============================================================================
+# 
+# [GraphQL 스키마란?]
+# - API의 타입 시스템 정의
+# - 클라이언트가 요청할 수 있는 데이터 구조 명세
+# - 자동으로 API 문서화 및 타입 검증
+#
+# [인증 디렉티브]
+# - @aws_api_key: API Key로 접근 가능 (비인증)
+# - @aws_cognito_user_pools: Cognito 인증 필요
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Post 타입
+# ------------------------------------------------------------------------------
+type Post @aws_api_key @aws_cognito_user_pools {
+  id: ID!
+  title: String!
+  content: String!
+  tags: [String]
+  status: String
+  author: String!
+  viewCount: Int
+  attachments: [Attachment]
+  thumbnailUrl: String
+  showThumbnail: Boolean
+  commentEnabled: Boolean   # 댓글 표시 여부 (기본값: true, 기존 포스트 하위 호환)
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+# ------------------------------------------------------------------------------
+# Attachment 타입 - 첨부파일 메타데이터
+# ------------------------------------------------------------------------------
+type Attachment @aws_api_key @aws_cognito_user_pools {
+  fileName: String!
+  fileSize: Int!
+  contentType: String!
+  s3Key: String!
+}
+
+# ------------------------------------------------------------------------------
+# PresignedUrl 타입 - S3 Presigned Upload URL
+# ------------------------------------------------------------------------------
+type PresignedUrl @aws_cognito_user_pools {
+  url: String!
+  s3Key: String!
+}
+
+# ------------------------------------------------------------------------------
+# Comment 타입
+# ------------------------------------------------------------------------------
+type Comment @aws_api_key @aws_cognito_user_pools {
+  id: ID!
+  postId: ID!
+  content: String!
+  author: String!   # 닉네임: 비인증 시 랜덤 생성, 인증 시 Cognito 이메일
+  createdAt: AWSDateTime!
+}
+
+# ------------------------------------------------------------------------------
+# CommentConnection 타입 - 댓글 페이지네이션
+# ------------------------------------------------------------------------------
+type CommentConnection @aws_api_key @aws_cognito_user_pools {
+  items: [Comment]    # 현재 페이지 댓글 목록
+  nextToken: String   # 다음 페이지 커서 (null이면 마지막 페이지)
+}
+
+# ------------------------------------------------------------------------------
+# 페이지네이션을 위한 Connection 타입
+# ------------------------------------------------------------------------------
+type PostConnection @aws_api_key @aws_cognito_user_pools {
+  items: [Post]
+  nextToken: String
+}
+
+# ------------------------------------------------------------------------------
+# 입력 타입
+# ------------------------------------------------------------------------------
+input CreatePostInput {
+  title: String!
+  content: String!
+  tags: [String]
+  status: String
+  attachments: [AttachmentInput]
+  thumbnailUrl: String
+  showThumbnail: Boolean
+  commentEnabled: Boolean   # 댓글 표시 여부
+}
+
+input UpdatePostInput {
+  id: ID!
+  title: String
+  content: String
+  tags: [String]
+  status: String
+  attachments: [AttachmentInput]
+  thumbnailUrl: String
+  showThumbnail: Boolean
+  commentEnabled: Boolean   # 댓글 표시 여부
+}
+
+input AttachmentInput {
+  fileName: String!
+  fileSize: Int!
+  contentType: String!
+  s3Key: String!
+}
+
+input CreateCommentInput {
+  postId: ID!
+  content: String!
+  # 비인증 사용자가 프론트엔드에서 생성한 랜덤 닉네임 (선택)
+  # 인증 사용자는 Cognito 이메일이 우선 적용됨
+  author: String
+}
+
+# ------------------------------------------------------------------------------
+# Tag 타입
+# ------------------------------------------------------------------------------
+type Tag @aws_api_key @aws_cognito_user_pools {
+  name: ID!
+  createdAt: AWSDateTime!
+}
+
+# ------------------------------------------------------------------------------
+# VisitorStats 타입 - 방문자 통계
+# ------------------------------------------------------------------------------
+# DynamoDB Atomic Counter 기반 방문자 카운팅
+# PK="VISITOR", SK=날짜(YYYY-MM-DD) 또는 "TOTAL"
+type VisitorStats @aws_api_key @aws_cognito_user_pools {
+  today: Int!
+  yesterday: Int!
+  total: Int!
+}
+
+# ------------------------------------------------------------------------------
+# PostViewResult 타입 - 글 조회수 결과
+# ------------------------------------------------------------------------------
+type PostViewResult @aws_api_key @aws_cognito_user_pools {
+  viewCount: Int!
+}
+
+# ------------------------------------------------------------------------------
+# Query (조회) - 비인증 접근 허용
+# ------------------------------------------------------------------------------
+type Query {
+  # 단일 포스트 조회
+  getPost(id: ID!): Post
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 포스트 목록 조회 (페이지네이션) - PUBLISHED만 반환
+  listPosts(limit: Int, nextToken: String): PostConnection
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 전체 포스트 조회 (인증된 사용자 전용, 초안 포함)
+  listAllPosts(limit: Int, nextToken: String): PostConnection
+    @aws_cognito_user_pools
+    
+  # 태그 목록 조회
+  listTags: [Tag]
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 방문자 통계 조회 (비인증 허용)
+  getVisitorStats: VisitorStats
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 특정 포스트의 댓글 목록 조회 (비인증 허용)
+  # DynamoDB: PK=POST#postId, SK begins_with COMMENT# (시간순 정렬)
+  listComments(postId: ID!, limit: Int, nextToken: String): CommentConnection
+    @aws_api_key
+    @aws_cognito_user_pools
+}
+
+# ------------------------------------------------------------------------------
+# Mutation (변경) - 인증 필요
+# ------------------------------------------------------------------------------
+type Mutation {
+  # 포스트 생성 (인증된 사용자 전용)
+  createPost(input: CreatePostInput!): Post
+    @aws_cognito_user_pools
+
+  # 포스트 수정 (인증된 사용자 전용)
+  updatePost(input: UpdatePostInput!): Post
+    @aws_cognito_user_pools
+
+  # 포스트 삭제 (인증된 사용자 전용)
+  deletePost(id: ID!): Post
+    @aws_cognito_user_pools
+
+  # 댓글 생성 - 비인증 사용자(API_KEY)도 허용 (익명 댓글)
+  # 인증 사용자: Cognito 이메일이 author로 사용됨
+  # 비인증 사용자: input.author (랜덤 닉네임)가 사용됨
+  createComment(input: CreateCommentInput!): Comment
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 댓글 삭제 (인증된 사용자 전용)
+  # SK 구성: COMMENT#<createdAt>#<commentId> 형식으로 정확한 아이템을 삭제
+  deleteComment(postId: ID!, commentId: ID!, createdAt: AWSDateTime!): Comment
+    @aws_cognito_user_pools
+    
+  # 태그 생성 (인증된 사용자 전용)
+  createTag(name: ID!): Tag
+    @aws_cognito_user_pools
+    
+  # 태그 삭제 (인증된 사용자 전용)
+  deleteTag(name: ID!): Tag
+    @aws_cognito_user_pools
+
+  # 방문자 기록 (비인증 허용 - IP 기반 중복 방지)
+  recordVisit: VisitorStats
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # 글 조회수 기록 (비인증 허용 - IP 기반 중복 방지)
+  recordPostView(postId: ID!): PostViewResult
+    @aws_api_key
+    @aws_cognito_user_pools
+
+  # Presigned Upload URL 생성 (인증된 사용자 전용)
+  getPresignedUploadUrl(postId: ID!, fileName: String!, contentType: String!, fileSize: Int!): PresignedUrl
+    @aws_cognito_user_pools
+}
+
+# ------------------------------------------------------------------------------
+# Schema 정의
+# ------------------------------------------------------------------------------
+schema {
+  query: Query
+  mutation: Mutation
+}

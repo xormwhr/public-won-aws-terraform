@@ -1,0 +1,23 @@
+# ==============================================================================
+# 파일명: terraform.tfvars.example
+# 경로: environments/main/terraform.tfvars.example
+# 설명: 중앙 인프라 관리용 변수 설정 템플릿
+# 사용법: 이 파일을 복사하여 terraform.tfvars를 생성한 후 실제 값을 입력하세요.
+# ==============================================================================
+
+# AWS 리전 설정
+aws_region   = "ap-northeast-2"
+project_name = "your-project-name"
+environment  = "main"
+
+# Route53 및 도메인 관련 설정
+root_domain      = "example.com"
+dashboard_domain = "dashboard.example.com"
+secret_domain    = "secret.example.com"
+
+# S3 버킷 관련 설정
+bucket_name_prefix = "won-project-assets"
+bucket_suffix      = "unique-suffix"
+
+
+

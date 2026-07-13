@@ -1,0 +1,15 @@
+{
+    "version": "2018-05-29",
+    "operation": "PutItem",
+    "key": {
+        "PK": { "S": "TAG#${context.arguments.name}" },
+        "SK": { "S": "TAG#${context.arguments.name}" }
+    },
+    "attributeValues": {
+        "name": { "S": "${context.arguments.name}" },
+        "createdAt": { "S": "$util.time.nowISO8601()" }
+    },
+    "condition": {
+        "expression": "attribute_not_exists(PK)"
+    }
+}

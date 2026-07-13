@@ -1,0 +1,102 @@
+## ==============================================================================
+## updatePost Request Mapping Template
+## ==============================================================================
+
+#set($now = $util.time.nowISO8601())
+#set($id = $ctx.args.input.id)
+
+## Cognito에서 사용자 정보 가져오기
+#set($author = $context.identity.claims.get("email"))
+
+#if($util.isNullOrEmpty($author))
+  $util.error("Unauthorized: User must be logged in", "UnauthorizedException")
+#end
+
+## 업데이트할 표현식 구성
+#set($expNames = {})
+#set($expValues = {})
+#set($expSet = [])
+
+## updatedAt은 항상 업데이트
+$util.qr($expNames.put("#updatedAt", "updatedAt"))
+$util.qr($expValues.put(":updatedAt", $util.dynamodb.toDynamoDB($now)))
+$util.qr($expSet.add("#updatedAt = :updatedAt"))
+
+## title이 있으면 업데이트
+#if(!$util.isNullOrEmpty($ctx.args.input.title))
+  $util.qr($expNames.put("#title", "title"))
+  $util.qr($expValues.put(":title", $util.dynamodb.toDynamoDB($ctx.args.input.title)))
+  $util.qr($expSet.add("#title = :title"))
+#end
+
+## content가 있으면 업데이트
+#if(!$util.isNullOrEmpty($ctx.args.input.content))
+  $util.qr($expNames.put("#content", "content"))
+  $util.qr($expValues.put(":content", $util.dynamodb.toDynamoDB($ctx.args.input.content)))
+  $util.qr($expSet.add("#content = :content"))
+#end
+
+## tags가 있으면 업데이트
+#if(!$util.isNullOrEmpty($ctx.args.input.tags))
+  $util.qr($expNames.put("#tags", "tags"))
+  $util.qr($expValues.put(":tags", $util.dynamodb.toDynamoDB($ctx.args.input.tags)))
+  $util.qr($expSet.add("#tags = :tags"))
+#end
+
+## status가 있으면 업데이트
+#if(!$util.isNullOrEmpty($ctx.args.input.status))
+  $util.qr($expNames.put("#status", "status"))
+  $util.qr($expValues.put(":status", $util.dynamodb.toDynamoDB($ctx.args.input.status)))
+  $util.qr($expSet.add("#status = :status"))
+#end
+
+## attachments가 있으면 업데이트 (빈 배열도 허용하여 첨부파일 삭제 가능)
+#if($ctx.args.input.containsKey("attachments"))
+  $util.qr($expNames.put("#attachments", "attachments"))
+  $util.qr($expValues.put(":attachments", $util.dynamodb.toDynamoDB($util.defaultIfNull($ctx.args.input.attachments, []))))
+  $util.qr($expSet.add("#attachments = :attachments"))
+#end
+
+## thumbnailUrl이 있으면 업데이트 (빈 문자열도 허용하여 썸네일 삭제 가능)
+#if($ctx.args.input.containsKey("thumbnailUrl"))
+  $util.qr($expNames.put("#thumbnailUrl", "thumbnailUrl"))
+  $util.qr($expValues.put(":thumbnailUrl", $util.dynamodb.toDynamoDB($util.defaultIfNull($ctx.args.input.thumbnailUrl, ""))))
+  $util.qr($expSet.add("#thumbnailUrl = :thumbnailUrl"))
+#end
+
+## showThumbnail이 있으면 업데이트 (false도 허용)
+#if($ctx.args.input.containsKey("showThumbnail"))
+  $util.qr($expNames.put("#showThumbnail", "showThumbnail"))
+  $util.qr($expValues.put(":showThumbnail", $util.dynamodb.toDynamoDB($ctx.args.input.showThumbnail)))
+  $util.qr($expSet.add("#showThumbnail = :showThumbnail"))
+#end
+
+## commentEnabled가 있으면 업데이트 (false도 허용)
+#if($ctx.args.input.containsKey("commentEnabled"))
+  $util.qr($expNames.put("#commentEnabled", "commentEnabled"))
+  $util.qr($expValues.put(":commentEnabled", $util.dynamodb.toDynamoDB($ctx.args.input.commentEnabled)))
+  $util.qr($expSet.add("#commentEnabled = :commentEnabled"))
+#end
+
+## 표현식 조합 (Loop 사용)
+#set($expression = "SET ")
+#foreach($item in $expSet)
+    #set($expression = "${expression}${item}")
+    #if($foreach.hasNext)
+        #set($expression = "${expression}, ")
+    #end
+#end
+
+{
+  "version": "2018-05-29",
+  "operation": "UpdateItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("POST#$id"),
+    "SK": $util.dynamodb.toDynamoDBJson("POST#$id")
+  },
+  "update": {
+    "expression": $util.toJson($expression),
+    "expressionNames": $util.toJson($expNames),
+    "expressionValues": $util.toJson($expValues)
+  }
+}

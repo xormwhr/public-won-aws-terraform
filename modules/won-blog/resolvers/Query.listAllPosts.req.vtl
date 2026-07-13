@@ -1,0 +1,29 @@
+## ==============================================================================
+## listAllPosts Request Mapping Template (인증된 사용자 전용)
+## ==============================================================================
+##
+## [인증된 사용자 전용 전체 포스트 조회]
+## - GSI1을 사용하여 모든 포스트 조회 (초안 포함)
+## - filter 없음: PUBLISHED + DRAFT 모두 반환
+## - @aws_cognito_user_pools 인증으로 접근 제한
+## ==============================================================================
+
+## 기본값 설정
+#set($limit = $util.defaultIfNull($ctx.args.limit, 10))
+
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "index": "GSI1",
+  "query": {
+    "expression": "GSI1PK = :pk",
+    "expressionValues": {
+      ":pk": $util.dynamodb.toDynamoDBJson("POSTS")
+    }
+  },
+  "limit": $limit,
+  "scanIndexForward": false,
+  #if(!$util.isNullOrEmpty($ctx.args.nextToken))
+    "nextToken": $util.toJson($ctx.args.nextToken)
+  #end
+}

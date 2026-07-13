@@ -1,0 +1,15 @@
+{
+  "name": "your-project-name-terraform-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "your-project-name-terraform Lambda 함수 단위 테스트 모음",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9",
+    "@vitest/coverage-v8": "^2.1.9"
+  }
+}

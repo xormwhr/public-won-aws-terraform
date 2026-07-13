@@ -1,0 +1,17 @@
+## ==============================================================================
+## Pipeline Before Mapping - recordVisit
+## ==============================================================================
+## Pipeline Resolver의 시작점. KST 기준 오늘 날짜를 계산하여
+## 이후 함수들에서 사용할 수 있도록 stash에 저장합니다.
+## ==============================================================================
+
+## KST 기준 오늘 날짜 계산 (UTC+9)
+#set($now = $util.time.nowEpochMilliSeconds())
+#set($kstOffset = 9 * 60 * 60 * 1000)
+#set($kstNow = $now + $kstOffset)
+#set($today = $util.time.epochMilliSecondsToFormatted($kstNow, "yyyy-MM-dd", "UTC"))
+
+## stash에 날짜 저장 (Pipeline 함수들이 공유)
+$util.qr($ctx.stash.put("today", $today))
+
+{}

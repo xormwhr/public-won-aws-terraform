@@ -1,0 +1,36 @@
+## ==============================================================================
+## getVisitorStats - 응답 매핑
+## ==============================================================================
+## Query 결과에서 오늘/어제/TOTAL 카운트를 추출하여
+## VisitorStats 타입에 맞게 매핑합니다.
+## ==============================================================================
+
+## KST 기준 오늘/어제 날짜 계산 (UTC+9)
+#set($now = $util.time.nowEpochMilliSeconds())
+#set($kstOffset = 9 * 60 * 60 * 1000)
+#set($kstNow = $now + $kstOffset)
+#set($today = $util.time.epochMilliSecondsToFormatted($kstNow, "yyyy-MM-dd", "UTC"))
+#set($yesterdayMs = $kstNow - 86400000)
+#set($yesterday = $util.time.epochMilliSecondsToFormatted($yesterdayMs, "yyyy-MM-dd", "UTC"))
+
+## 기본값 설정
+#set($todayCount = 0)
+#set($yesterdayCount = 0)
+#set($totalCount = 0)
+
+## Query 결과 파싱 (items 배열 순회)
+#foreach($item in $ctx.result.items)
+  #if($item.SK == $today)
+    #set($todayCount = $item.count)
+  #elseif($item.SK == $yesterday)
+    #set($yesterdayCount = $item.count)
+  #elseif($item.SK == "TOTAL")
+    #set($totalCount = $item.count)
+  #end
+#end
+
+{
+  "today": $todayCount,
+  "yesterday": $yesterdayCount,
+  "total": $totalCount
+}

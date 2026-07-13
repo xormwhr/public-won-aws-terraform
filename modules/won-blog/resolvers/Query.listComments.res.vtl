@@ -1,0 +1,12 @@
+## ==============================================================================
+## listComments Response Mapping Template
+## ==============================================================================
+## DynamoDB Query 결과를 GraphQL CommentConnection 타입으로 매핑
+## items 배열과 nextToken(페이지네이션 커서)을 그대로 반환
+## ==============================================================================
+
+#if($ctx.error)
+  $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+$util.toJson($ctx.result)

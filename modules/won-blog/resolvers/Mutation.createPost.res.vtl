@@ -1,0 +1,21 @@
+## ==============================================================================
+## createPost Response Mapping Template
+## ==============================================================================
+## 
+## [Response Template 역할]
+## - DynamoDB 응답 → GraphQL 형식으로 변환
+## - 에러 처리
+## - 결과 필터링/가공
+##
+## [주요 변수]
+## - $ctx.result: DynamoDB 작업 결과
+## - $ctx.error: 에러 정보 (있는 경우)
+## ==============================================================================
+
+## 에러 체크
+#if($ctx.error)
+  $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+## DynamoDB 결과를 GraphQL 형식으로 반환
+$util.toJson($ctx.result)

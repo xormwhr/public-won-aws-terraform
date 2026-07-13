@@ -1,0 +1,59 @@
+## ==============================================================================
+## createPost Request Mapping Template
+## ==============================================================================
+## 
+## [VTL(Velocity Template Language)이란?]
+## - Apache Velocity 기반 템플릿 언어
+## - AppSync에서 요청/응답을 DynamoDB 형식으로 변환
+## - Lambda 없이 직접 DynamoDB 작업 가능 (비용 절감)
+##
+## [Request Template 역할]
+## - GraphQL 요청 → DynamoDB 명령으로 변환
+## - 입력 검증 및 데이터 변환
+## - 자동 생성 필드 추가 (id, timestamps)
+##
+## [주요 VTL 유틸리티]
+## - $util.autoId(): UUID 자동 생성
+## - $util.time.nowISO8601(): 현재 시간 (ISO 8601)
+## - $util.dynamodb.toDynamoDBJson(): DynamoDB 형식으로 변환
+## ==============================================================================
+
+## 현재 시간 생성
+#set($now = $util.time.nowISO8601())
+
+## UUID 생성
+#set($id = $util.autoId())
+
+## Cognito에서 사용자 정보 가져오기
+#set($author = $context.identity.claims.get("email"))
+
+## author가 없으면 에러 반환 (인증 필수)
+#if($util.isNullOrEmpty($author))
+  $util.error("Unauthorized: User must be logged in", "UnauthorizedException")
+#end
+
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("POST#$id"),
+    "SK": $util.dynamodb.toDynamoDBJson("POST#$id")
+  },
+  "attributeValues": {
+    "id": $util.dynamodb.toDynamoDBJson($id),
+    "title": $util.dynamodb.toDynamoDBJson($ctx.args.input.title),
+    "content": $util.dynamodb.toDynamoDBJson($ctx.args.input.content),
+    "tags": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.tags, [])),
+    "status": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.status, "DRAFT")),
+    "attachments": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.attachments, [])),
+    "thumbnailUrl": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.thumbnailUrl, "")),
+    "showThumbnail": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.showThumbnail, true)),
+    "commentEnabled": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.input.commentEnabled, false)),
+    "author": $util.dynamodb.toDynamoDBJson($author),
+    "createdAt": $util.dynamodb.toDynamoDBJson($now),
+    "updatedAt": $util.dynamodb.toDynamoDBJson($now),
+    "EntityType": $util.dynamodb.toDynamoDBJson("POST"),
+    "GSI1PK": $util.dynamodb.toDynamoDBJson("POSTS"),
+    "GSI1SK": $util.dynamodb.toDynamoDBJson($now)
+  }
+}

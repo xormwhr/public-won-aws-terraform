@@ -1,0 +1,17 @@
+## ==============================================================================
+## listPosts Response Mapping Template
+## ==============================================================================
+##
+## [PostConnection 응답 형식]
+## - items: 포스트 배열
+## - nextToken: 다음 페이지 토큰 (있으면)
+## ==============================================================================
+
+#if($ctx.error)
+  $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+{
+  "items": $util.toJson($ctx.result.items),
+  "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.result.nextToken, null))
+}

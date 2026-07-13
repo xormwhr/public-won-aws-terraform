@@ -1,0 +1,24 @@
+## ==============================================================================
+## getPost Request Mapping Template
+## ==============================================================================
+##
+## [Query vs Mutation]
+## - Query: 읽기 작업 (GetItem, Query, Scan)
+## - Mutation: 쓰기 작업 (PutItem, UpdateItem, DeleteItem)
+##
+## [GetItem 작업]
+## - 단일 항목 조회 (Primary Key로 직접 접근)
+## - 가장 빠르고 비용 효율적인 조회 방법
+## - 일관된 읽기(Consistent Read) 가능
+## ==============================================================================
+
+#set($id = $ctx.args.id)
+
+{
+  "version": "2018-05-29",
+  "operation": "GetItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("POST#$id"),
+    "SK": $util.dynamodb.toDynamoDBJson("POST#$id")
+  }
+}

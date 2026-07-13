@@ -1,0 +1,25 @@
+## ==============================================================================
+## Function: recordDailyVisit - 오늘 방문자 카운터 +1
+## ==============================================================================
+## DynamoDB UpdateItem + ADD 연산으로 Atomic Counter 구현
+## PK="VISITOR", SK=오늘날짜 아이템의 count를 1 증가시킵니다.
+## 아이템이 없으면 자동 생성됩니다.
+## ==============================================================================
+
+{
+  "version": "2018-05-29",
+  "operation": "UpdateItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("VISITOR"),
+    "SK": $util.dynamodb.toDynamoDBJson($ctx.stash.today)
+  },
+  "update": {
+    "expression": "ADD #count :inc",
+    "expressionNames": {
+      "#count": "count"
+    },
+    "expressionValues": {
+      ":inc": $util.dynamodb.toDynamoDBJson(1)
+    }
+  }
+}

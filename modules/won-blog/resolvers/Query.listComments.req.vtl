@@ -1,0 +1,33 @@
+## ==============================================================================
+## listComments Request Mapping Template
+## ==============================================================================
+## 특정 포스트의 댓글 목록을 시간순(오래된 순)으로 조회
+##
+## DynamoDB 접근 패턴:
+##   - PK: POST#<postId> (포스트 파티션 내 조회)
+##   - SK: begins_with("COMMENT#") (댓글 아이템만 필터링)
+##   - scanIndexForward: true (시간순 오름차순 - 오래된 댓글부터)
+##
+## 페이지네이션:
+##   - limit: 기본 50개 (커서 기반 페이지네이션)
+##   - nextToken: 이전 응답의 nextToken을 전달하면 다음 페이지 조회
+## ==============================================================================
+
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "query": {
+    ## PK 조건: 특정 포스트의 파티션만 조회
+    "expression": "PK = :pk AND begins_with(SK, :skPrefix)",
+    "expressionValues": {
+      ":pk":       $util.dynamodb.toDynamoDBJson("POST#$ctx.args.postId"),
+      ":skPrefix": $util.dynamodb.toDynamoDBJson("COMMENT#")
+    }
+  },
+  ## 오래된 댓글부터 표시 (일반적인 댓글 UI 패턴)
+  "scanIndexForward": true,
+  ## limit 미지정 시 기본 50개 반환
+  "limit": $util.defaultIfNull($ctx.args.limit, 50),
+  ## nextToken이 null이면 첫 페이지, 아니면 해당 커서부터 조회
+  "nextToken": $util.toJson($util.defaultIfNull($ctx.args.nextToken, null))
+}

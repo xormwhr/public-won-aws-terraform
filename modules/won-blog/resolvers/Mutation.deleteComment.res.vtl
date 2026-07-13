@@ -1,0 +1,13 @@
+## ==============================================================================
+## deleteComment Response Mapping Template
+## ==============================================================================
+## DeleteItem 결과를 GraphQL Comment 타입으로 매핑
+## ALL_OLD 반환값: 삭제된 아이템 데이터가 ctx.result에 담김
+## 아이템이 존재하지 않았다면 ctx.result는 null
+## ==============================================================================
+
+#if($ctx.error)
+  $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+$util.toJson($ctx.result)

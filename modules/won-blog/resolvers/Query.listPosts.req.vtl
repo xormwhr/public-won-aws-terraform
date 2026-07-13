@@ -1,0 +1,42 @@
+## ==============================================================================
+## listPosts Request Mapping Template
+## ==============================================================================
+##
+## [GSI Query 작업]
+## - GSI1을 사용하여 모든 포스트 조회
+## - GSI1PK = "POSTS", GSI1SK로 정렬
+## - ScanIndexForward: false = 최신순 (내림차순)
+##
+## [페이지네이션]
+## - limit: 한 번에 가져올 항목 수
+## - nextToken: 다음 페이지 커서 (DynamoDB의 LastEvaluatedKey)
+## ==============================================================================
+
+## 기본값 설정
+#set($limit = $util.defaultIfNull($ctx.args.limit, 10))
+
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "index": "GSI1",
+  "query": {
+    "expression": "GSI1PK = :pk",
+    "expressionValues": {
+      ":pk": $util.dynamodb.toDynamoDBJson("POSTS")
+    }
+  },
+  "filter": {
+    "expression": "#status = :published OR attribute_not_exists(#status)",
+    "expressionNames": {
+      "#status": "status"
+    },
+    "expressionValues": {
+      ":published": $util.dynamodb.toDynamoDBJson("PUBLISHED")
+    }
+  },
+  "limit": $limit,
+  "scanIndexForward": false,
+  #if(!$util.isNullOrEmpty($ctx.args.nextToken))
+    "nextToken": $util.toJson($ctx.args.nextToken)
+  #end
+}

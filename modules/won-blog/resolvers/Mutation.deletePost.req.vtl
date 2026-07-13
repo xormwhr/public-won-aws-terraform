@@ -1,0 +1,21 @@
+## ==============================================================================
+## deletePost Request Mapping Template
+## ==============================================================================
+
+#set($id = $ctx.args.id)
+
+## Cognito에서 사용자 정보 가져오기
+#set($author = $context.identity.claims.get("email"))
+
+#if($util.isNullOrEmpty($author))
+  $util.error("Unauthorized: User must be logged in", "UnauthorizedException")
+#end
+
+{
+  "version": "2018-05-29",
+  "operation": "DeleteItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("POST#$id"),
+    "SK": $util.dynamodb.toDynamoDBJson("POST#$id")
+  }
+}
